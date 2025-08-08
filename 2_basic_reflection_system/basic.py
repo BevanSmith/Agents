@@ -40,8 +40,8 @@ graph.add_edge("reflect_node", "generate_node")
 app = graph.compile()
 
 #to plot graph
-print(app.get_graph().draw_mermaid())
-app.get_graph().print_ascii()
+# print(app.get_graph().draw_mermaid())
+# app.get_graph().print_ascii()
 
 
 response = app.invoke({"messages": [HumanMessage(content="AI Agent taking over content creation")]},
