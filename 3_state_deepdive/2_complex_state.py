@@ -1,4 +1,4 @@
-from typing import TypedDict, List
+from typing import TypedDict, List, Annotated
 from langgraph.graph import StateGraph, END
 
 class SimpleState(TypedDict):
