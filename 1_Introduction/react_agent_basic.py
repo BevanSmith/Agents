@@ -1,5 +1,6 @@
 from langchain_groq import ChatGroq # Updated to ChatGroq
 from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain import hub
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import os
@@ -13,7 +14,11 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 
-llm = ChatGroq(api_key=GROQ_API_KEY, model_name="llama-3.1-8b-instant", temperature=0.0)
+
+# llm = ChatGroq(api_key=GROQ_API_KEY, model_name="llama-3.1-8b-instant", temperature=0.0)
+llm=ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+
+
 
 search_tool = TavilySearchResults(search_depth="basic")
 
