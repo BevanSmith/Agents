@@ -65,7 +65,7 @@ while True:
     else:
         result = app.invoke({
             "messages": [HumanMessage(content=user_input)]
-        })
+        })   #the app is designed to accept input as a dictionary with a key and value
 
         # print("Bot:", result["messages"][-1].content)
         print(result)

@@ -5,12 +5,17 @@ from langchain_core.messages import AIMessage, HumanMessage
 from dotenv import load_dotenv
 import os
 
-from langgraph.checkpoint.memory import MemorySaver
+# from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
+import sqlite3
 
 
 load_dotenv()
 
-memory=MemorySaver()   #this is in memory.  If we stop/exit program we lose the memory. 
+sqlite_conn=sqlite3.connect("checkpoint.sqlite", check_same_thread=False)  #not suggested by sqlite to
+#bypass or disable check same thread.  This allows a thread to be used in another connection.
+
+memory=SqliteSaver(sqlite_conn) #this is better memory because it is not stored in memory but in an external DB
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
