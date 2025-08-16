@@ -52,6 +52,12 @@ graph.add_edge("tool_node", "chatbot")
 
 app=graph.compile()
 
+
+# while true allows for infinite looping until exit or end and break.
+# the user (human) inputs a prompt, if not exit or end, it goes to
+# invoke the app with the human message.  The app produces some llm output and
+# stores in result which we then print to screen, and go back to User
+#This loops until we break. 
 while True:
     user_input = input("User: ")
     if(user_input in ["exit", "end"]):
@@ -63,5 +69,20 @@ while True:
 
         # print("Bot:", result["messages"][-1].content)
         print(result)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         
