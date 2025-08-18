@@ -5,6 +5,12 @@ import os
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 
+
+#this code shows how to use Command within a node, instead of using add_edges.  It's meant to provide
+#more flexibility.  But not sure exaclty how yet.  The Command class can show which node to goto
+#and it can update the state
+
+
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
