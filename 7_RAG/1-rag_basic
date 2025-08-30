@@ -1,0 +1,118 @@
+import os
+import getpass
+from typing import TypedDict, List
+from langchain_core.documents import Document
+from dotenv import load_dotenv
+
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+
+# Install required libraries
+# pip install langchain-groq langchain-community pypdf faiss-cpu sentence-transformers
+
+# Define graph state
+class GraphState(TypedDict):
+    question: str
+    context: List[Document]
+    answer: str
+
+# 1. Data Ingestion: Load, Chunk, and Embed a PDF
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+
+def ingest_data(pdf_path: str):
+    """Loads a PDF, chunks the text, and creates a FAISS vector store."""
+    loader = PyPDFLoader(pdf_path)
+    docs = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    splits = text_splitter.split_documents(docs)
+    
+    # Use a free, open-source embedding model from Hugging Face
+    print("---LOADING OPEN-SOURCE EMBEDDING MODEL---")
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    
+    print("---CREATING VECTOR STORE---")
+    vector_store = FAISS.from_documents(documents=splits, embedding=embeddings)
+    return vector_store
+
+# 2. Define the RAG Graph Nodes
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
+from langgraph.graph import StateGraph, START, END
+
+# Define the nodes for the graph
+def retrieve(state: GraphState):
+    """Retrieves relevant documents based on the user's question."""
+    print("---RETRIEVING DOCUMENTS---")
+    question = state["question"]
+    retriever = vector_store.as_retriever()
+    retrieved_docs = retriever.invoke(question)
+    return {"context": retrieved_docs, "question": question}
+
+def generate(state: GraphState):
+    """Generates an answer based on the retrieved documents using Groq."""
+    print("---GENERATING ANSWER WITH GROQ---")
+    question = state["question"]
+    context = state["context"]
+    
+    # Use the Groq API for the LLM
+    groq_api_key = os.environ.get("GROQ_API_KEY")
+    if not groq_api_key:
+        groq_api_key = getpass.getpass("Enter your Groq API key: ")
+    
+    llm = ChatGroq(
+        temperature=0, 
+        groq_api_key=groq_api_key, 
+        model_name="llama-3.1-8b-instant" # Or another supported Groq model
+    )
+    
+    # Define a prompt template for grounding the LLM
+    prompt = ChatPromptTemplate.from_template(
+        "Answer the question based ONLY on the following context:\n\n{context}\n\nQuestion: {question}"
+    )
+    
+    rag_chain = prompt | llm
+    
+    response = rag_chain.invoke({"context": context, "question": question})
+    return {"answer": response.content, "question": question, "context": context}
+
+# 3. Build and Compile the LangGraph
+def build_and_run_rag_graph(vector_store_instance, user_question):
+    """Builds and runs the LangGraph for a user query."""
+    global vector_store
+    vector_store = vector_store_instance
+    
+    builder = StateGraph(GraphState)
+    builder.add_node("retrieve", retrieve)
+    builder.add_node("generate", generate)
+    
+    builder.add_edge(START, "retrieve")
+    builder.add_edge("retrieve", "generate")
+    builder.add_edge("generate", END)
+    
+    graph = builder.compile()
+
+    print(f"User Query: {user_question}")
+    result = graph.invoke({"question": user_question})
+    return result
+
+# Example usage
+if __name__ == "__main__":
+    pdf_path = "discovery.pdf" 
+
+    
+    try:
+        vector_store_instance = ingest_data(pdf_path)
+        user_query = "List the medical aid plans under R3000"
+        rag_result = build_and_run_rag_graph(vector_store_instance, user_query)
+        
+        print("\nFinal Answer:")
+        print(rag_result["answer"])
+
+    except FileNotFoundError:
+        print(f"Error: The file '{pdf_path}' was not found. Please provide a valid PDF file path.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
